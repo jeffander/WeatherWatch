@@ -20,7 +20,7 @@ static const uint32_t WEATHER_ICONS[] = {
 enum WeatherKey {
   WEATHER_ICON_KEY = 0x0,         // TUPLE_INT
   WEATHER_TEMPERATURE_KEY = 0x1,  // TUPLE_CSTRING
-  INVERT_COLOR_KEY = 0x2,  // TUPLE_CSTRING
+  INVERT_COLOR_KEY = 0x2,         // TUPLE_CSTRING
 };
 
 Window *window;
@@ -43,19 +43,17 @@ static AppSync sync;
 static uint8_t sync_buffer[64];
 
 void set_invert_color(bool invert) {
-  if (invert && inverter_layer == NULL) {
+  if (invert&&(!inverter_layer)) {
     // Add inverter layer
     Layer *window_layer = window_get_root_layer(window);
-
-    inverter_layer = inverter_layer_create(GRect(0, 0, 144, 168));
+    inverter_layer = inverter_layer_create(GRect(0,0,144,168));
     layer_add_child(window_layer, inverter_layer_get_layer(inverter_layer));
-  } else if (!invert && inverter_layer != NULL) {
+  } else if ((!invert)&&inverter_layer) {
     // Remove Inverter layer
     layer_remove_from_parent(inverter_layer_get_layer(inverter_layer));
     inverter_layer_destroy(inverter_layer);
     inverter_layer = NULL;
   }
-  // No action required
 }
 
 static void sync_tuple_changed_callback(const uint32_t key,
@@ -67,22 +65,18 @@ static void sync_tuple_changed_callback(const uint32_t key,
   // App Sync keeps new_tuple in sync_buffer, so we may use it directly
   switch (key) {
     case WEATHER_ICON_KEY:
-      if (icon_bitmap) {
-        gbitmap_destroy(icon_bitmap);
-      }
-
-      icon_bitmap = gbitmap_create_with_resource(
-          WEATHER_ICONS[new_tuple->value->uint8]);
-      bitmap_layer_set_bitmap(icon_layer, icon_bitmap);
+      if (icon_bitmap) gbitmap_destroy(icon_bitmap);
+      icon_bitmap = gbitmap_create_with_resource(WEATHER_ICONS[new_tuple->value->uint8]);
+      bitmap_layer_set_bitmap(icon_layer,icon_bitmap);
       break;
 
     case WEATHER_TEMPERATURE_KEY:
-      text_layer_set_text(temp_layer, new_tuple->value->cstring);
+      text_layer_set_text(temp_layer,new_tuple->value->cstring);
       break;
 
     case INVERT_COLOR_KEY:
-      invert = new_tuple->value->uint8 != 0;
-      persist_write_bool(INVERT_COLOR_KEY, invert);
+      invert = new_tuple->value->uint8!=0;
+      persist_write_bool(INVERT_COLOR_KEY,invert);
       set_invert_color(invert);
       break;
   }
@@ -96,17 +90,12 @@ void line_layer_update_callback(Layer *layer, GContext* ctx) {
 
 void bluetooth_connection_changed(bool connected) {
   static bool _connected = true;
-
   // This seemed to get called twice on disconnect
-  if (!connected && _connected) {
+  if ((!connected)&&_connected) {
     vibes_short_pulse();
-
-    if (icon_bitmap) {
-      gbitmap_destroy(icon_bitmap);
-    }
-
+    if (icon_bitmap) gbitmap_destroy(icon_bitmap);
     icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_NO_BT);
-    bitmap_layer_set_bitmap(icon_layer, icon_bitmap);
+    bitmap_layer_set_bitmap(icon_layer,icon_bitmap);
   }
   _connected = connected;
 }
@@ -124,7 +113,6 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
   if (yday != tick_time->tm_yday) {
     strftime(day_text, sizeof(day_text), "%A", tick_time);
     text_layer_set_text(text_day_layer, day_text);
-
     strftime(date_text, sizeof(date_text), "%B %e", tick_time);
     text_layer_set_text(text_date_layer, date_text);
   }
@@ -148,8 +136,7 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 // FIXME testing code
 void update_battery_state(BatteryChargeState battery_state) {
   static char battery_text[] = "100%";
-  snprintf(battery_text, sizeof(battery_text), "%d%%",
-      battery_state.charge_percent);
+  snprintf(battery_text,sizeof(battery_text),"%d%%",battery_state.charge_percent);
   text_layer_set_text(battery_text_layer, battery_text);
 }
 
@@ -164,16 +151,15 @@ void handle_init(void) {
   Layer *weather_holder = layer_create(GRect(0, 0, 144, 50));
   layer_add_child(window_layer, weather_holder);
 
-  icon_layer = bitmap_layer_create(GRect(0, 0, 40, 40));
-  layer_add_child(weather_holder, bitmap_layer_get_layer(icon_layer));
+  icon_layer = bitmap_layer_create(GRect(0,0,40,40));
+  layer_add_child(weather_holder,bitmap_layer_get_layer(icon_layer));
 
-  temp_layer = text_layer_create(GRect(40, 3, 144 - 40, 28));
-  text_layer_set_text_color(temp_layer, GColorWhite);
-  text_layer_set_background_color(temp_layer, GColorClear);
-  text_layer_set_font(temp_layer,
-      fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-  text_layer_set_text_alignment(temp_layer, GTextAlignmentRight);
-  layer_add_child(weather_holder, text_layer_get_layer(temp_layer));
+  temp_layer = text_layer_create(GRect(42,6,144-42,28));
+  text_layer_set_text_color(temp_layer,GColorWhite);
+  text_layer_set_background_color(temp_layer,GColorClear);
+  text_layer_set_font(temp_layer,fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  text_layer_set_text_alignment(temp_layer,GTextAlignmentLeft);
+  layer_add_child(weather_holder,text_layer_get_layer(temp_layer));
 
   // Initialize date & time text
   Layer *date_holder = layer_create(GRect(0, 52, 144, 94));
@@ -222,8 +208,7 @@ void handle_init(void) {
   battery_text_layer = text_layer_create(GRect(0, 168 - 18, 144, 168));
   text_layer_set_text_color(battery_text_layer, GColorWhite);
   text_layer_set_background_color(battery_text_layer, GColorClear);
-  text_layer_set_font(battery_text_layer,
-                      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_font(battery_text_layer,fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(battery_text_layer));
 

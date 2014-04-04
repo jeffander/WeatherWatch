@@ -134,6 +134,7 @@ function getWeatherFromWoeid(woeid) {
       if (req.status == 200) {
         response = JSON.parse(req.responseText);
         if (response) {
+          console.log("Response "+response)
           var condition = response.query.results.channel.item.condition;
           temperature = condition.temp + (celsius ? "\u00B0C" : "\u00B0F");
           icon = imageId[condition.code];
@@ -207,6 +208,6 @@ Pebble.addEventListener("ready", function(e) {
   setInterval(function() {
     //console.log("timer fired");
     updateWeather();
-  }, 1800000); // 30 minutes
+  }, 1800000/2); // 30 minutes
   console.log(e.type);
 });
