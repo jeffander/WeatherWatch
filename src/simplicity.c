@@ -151,14 +151,14 @@ void handle_init(void) {
   Layer *weather_holder = layer_create(GRect(0, 0, 144, 50));
   layer_add_child(window_layer, weather_holder);
 
-  icon_layer = bitmap_layer_create(GRect(0,0,40,40));
+  icon_layer = bitmap_layer_create(GRect(144-40,0,40,40)); //GRect(0,0,40,40));
   layer_add_child(weather_holder,bitmap_layer_get_layer(icon_layer));
 
-  temp_layer = text_layer_create(GRect(42,6,144-42,28));
+  temp_layer = text_layer_create(GRect(0,0,144-42,40)); //GRect(42,6,144-42,28));
   text_layer_set_text_color(temp_layer,GColorWhite);
   text_layer_set_background_color(temp_layer,GColorClear);
   text_layer_set_font(temp_layer,fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-  text_layer_set_text_alignment(temp_layer,GTextAlignmentLeft);
+  text_layer_set_text_alignment(temp_layer,GTextAlignmentRight);
   layer_add_child(weather_holder,text_layer_get_layer(temp_layer));
 
   // Initialize date & time text
@@ -214,13 +214,19 @@ void handle_init(void) {
 
   // Subscribe to notifications
   bluetooth_connection_service_subscribe(bluetooth_connection_changed);
-  tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+  tick_timer_service_subscribe(MINUTE_UNIT,handle_minute_tick);
   battery_state_service_subscribe(update_battery_state);
 
   // Update the battery on launch
   update_battery_state(battery_state_service_peek());
 
-  // TODO: Update display here to avoid blank display on launch?
+  //Get a time structure so that the face doesn't start blank
+  //Manually call the tick handler when the window is loading  
+  //struct tm *t;
+  //time_t temp;
+  time_t temp = time(NULL);
+  struct tm *t = localtime(&temp);
+  handle_minute_tick(t,MINUTE_UNIT);
 }
 
 void handle_deinit(void) {
