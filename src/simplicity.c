@@ -47,7 +47,7 @@ InverterLayer *inverter_layer = NULL;
 TextLayer *battery_text_layer;
 
 static AppSync sync;
-static uint8_t sync_buffer[128];
+static uint8_t sync_buffer[64];
 
 void set_invert_color(bool invert) {
   if (invert&&(!inverter_layer)) {
@@ -66,7 +66,7 @@ void set_invert_color(bool invert) {
 static void sync_tuple_changed_callback(const uint32_t key,const Tuple* new_tuple,const Tuple* old_tuple,void* context) {
   bool invert;
 
-  app_log(APP_LOG_LEVEL_DEBUG,"",0,"sync_tuple_changed_callback %lu",key);  
+  //app_log(APP_LOG_LEVEL_DEBUG,"",0,"sync_tuple_changed_callback %lu",key);  
   
   // App Sync keeps new_tuple in sync_buffer, so we may use it directly
   switch (key) {
@@ -74,24 +74,24 @@ static void sync_tuple_changed_callback(const uint32_t key,const Tuple* new_tupl
       if (icon_bitmap) gbitmap_destroy(icon_bitmap);
       icon_bitmap = gbitmap_create_with_resource(WEATHER_ICONS[new_tuple->value->uint8]);
       bitmap_layer_set_bitmap(icon_layer,icon_bitmap);
-      app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_ICON_KEY %u",new_tuple->value->uint8);      
+      //app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_ICON_KEY %u",new_tuple->value->uint8);      
       break;
 
     case WEATHER_TEMPERATURE_KEY:
       text_layer_set_text(temp_layer,new_tuple->value->cstring);
-      app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_TEMPERATURE_KEY %s",new_tuple->value->cstring);    
+      //app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_TEMPERATURE_KEY %s",new_tuple->value->cstring);    
       break;
 
     case WEATHER_LOCATION_KEY:
       text_layer_set_text(status_layer,new_tuple->value->cstring);
-      app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_LOCATION_KEY %s",new_tuple->value->cstring);
+      //app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_LOCATION_KEY %s",new_tuple->value->cstring);
       break;
     
     case INVERT_COLOR_KEY:
       invert = new_tuple->value->uint8!=0;
       persist_write_bool(INVERT_COLOR_KEY,invert);
       set_invert_color(invert);
-      app_log(APP_LOG_LEVEL_DEBUG,"",0,"INVERT_COLOR_KEY %u",new_tuple->value->uint8);    
+      //app_log(APP_LOG_LEVEL_DEBUG,"",0,"INVERT_COLOR_KEY %u",new_tuple->value->uint8);    
       break;
   }
 }
@@ -221,8 +221,8 @@ void handle_init(void) {
   text_layer_set_text(status_layer,"Location!");
   
   // Setup messaging
-  const int inbound_size = 128;
-  const int outbound_size = 128;
+  const int inbound_size = 64;
+  const int outbound_size = 64;
   app_message_open(inbound_size, outbound_size);
 
   Tuplet initial_values[] = {

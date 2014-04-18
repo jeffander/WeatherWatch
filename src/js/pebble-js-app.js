@@ -83,7 +83,7 @@ function getWeatherFromLatLong(latitude,longitude) {
     if (req.readyState == 4) {
       if (req.status == 200) {
         console.log("getWeatherFromLatLong "+latitude+","+longitude);
-        console.log(req.responseText);
+        //console.log(req.responseText);
         response = JSON.parse(req.responseText);
         if (response) {
           woeid = response.query.results.Result.woeid;
@@ -109,7 +109,7 @@ function getWeatherFromLocation(location) {
   req.onload = function(e) {
     if (req.readyState == 4) {
       if (req.status == 200) {
-        //console.log("getWeatherFromLocation "+location);        
+        console.log("getWeatherFromLocation "+location);        
         //console.log(req.responseText);
         response = JSON.parse(req.responseText);
         if (response) {
@@ -138,16 +138,18 @@ function getWeatherFromWoeid(woeid,locationName) {
     if (req.readyState == 4) {
       if (req.status == 200) {
         console.log("getWeatherFromWoeid "+woeid+","+locationName);        
-        console.log(req.responseText);        
+        //console.log(req.responseText);        
         response = JSON.parse(req.responseText);
         if (response) {
           var condition = response.query.results.channel.item.condition;
-          temperature = condition.temp + (celsius ? "\u00B0C" : "\u00B0F");
-          icon = imageId[condition.code];
+          var temperature = condition.temp + (celsius ? "\u00B0C" : "\u00B0F");
+          var icon = imageId[condition.code];
+          var now = new Date();
+          var time = ""+now.getHours()+":"+now.getMinutes();
           Pebble.sendAppMessage({
             "icon" : icon,
             "temperature" : temperature,
-            "location_name" : locationName,
+            "location_name" : time+" "+locationName.substring(0,32),
             "invert_color" : (options["invert_color"] == "true" ? 1 : 0),
           });
         }
@@ -161,9 +163,7 @@ function getWeatherFromWoeid(woeid,locationName) {
 
 function updateWeather() {
   if (options['use_gps'] == "true") {
-    window.navigator.geolocation.getCurrentPosition(locationSuccess,
-                                                    locationError,
-                                                    locationOptions);
+    window.navigator.geolocation.getCurrentPosition(locationSuccess,locationError,locationOptions);
   } else {
     getWeatherFromLocation(options["location"]);
   }
@@ -180,7 +180,8 @@ function locationError(err) {
   console.warn('location error (' + err.code + '): ' + err.message);
   Pebble.sendAppMessage({
     "icon":11,
-    "temperature":""
+    "temperature":"",
+    "location_name":""     
   });
 }
 
