@@ -20,8 +20,12 @@ static const uint32_t WEATHER_ICONS[] = {
 enum WeatherKey {
   WEATHER_ICON_KEY = 0x0,         // TUPLE_INT
   WEATHER_TEMPERATURE_KEY = 0x1,  // TUPLE_CSTRING
-  INVERT_COLOR_KEY = 0x2,         // TUPLE_CSTRING
+  WEATHER_LOCATION_KEY = 0x2,     // TUPLE_CSTRING
+  INVERT_COLOR_KEY = 0x3,         // TUPLE_CSTRING
 };
+
+static const int16_t kScreenWidth = 144;
+static const int16_t kScreenHeigth = 168;
 
 Window *window;
 
@@ -34,13 +38,16 @@ TextLayer *text_date_layer;
 TextLayer *text_time_layer;
 Layer *line_layer;
 
+// Mine
+TextLayer *status_layer;
+
 InverterLayer *inverter_layer = NULL;
 
 // FIXME testing code
 TextLayer *battery_text_layer;
 
 static AppSync sync;
-static uint8_t sync_buffer[64];
+static uint8_t sync_buffer[128];
 
 void set_invert_color(bool invert) {
   if (invert&&(!inverter_layer)) {
@@ -56,28 +63,35 @@ void set_invert_color(bool invert) {
   }
 }
 
-static void sync_tuple_changed_callback(const uint32_t key,
-                                        const Tuple* new_tuple,
-                                        const Tuple* old_tuple,
-                                        void* context) {
+static void sync_tuple_changed_callback(const uint32_t key,const Tuple* new_tuple,const Tuple* old_tuple,void* context) {
   bool invert;
 
+  app_log(APP_LOG_LEVEL_DEBUG,"",0,"sync_tuple_changed_callback %lu",key);  
+  
   // App Sync keeps new_tuple in sync_buffer, so we may use it directly
   switch (key) {
     case WEATHER_ICON_KEY:
       if (icon_bitmap) gbitmap_destroy(icon_bitmap);
       icon_bitmap = gbitmap_create_with_resource(WEATHER_ICONS[new_tuple->value->uint8]);
       bitmap_layer_set_bitmap(icon_layer,icon_bitmap);
+      app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_ICON_KEY %u",new_tuple->value->uint8);      
       break;
 
     case WEATHER_TEMPERATURE_KEY:
       text_layer_set_text(temp_layer,new_tuple->value->cstring);
+      app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_TEMPERATURE_KEY %s",new_tuple->value->cstring);    
       break;
 
+    case WEATHER_LOCATION_KEY:
+      text_layer_set_text(status_layer,new_tuple->value->cstring);
+      app_log(APP_LOG_LEVEL_DEBUG,"",0,"WEATHER_LOCATION_KEY %s",new_tuple->value->cstring);
+      break;
+    
     case INVERT_COLOR_KEY:
       invert = new_tuple->value->uint8!=0;
       persist_write_bool(INVERT_COLOR_KEY,invert);
       set_invert_color(invert);
+      app_log(APP_LOG_LEVEL_DEBUG,"",0,"INVERT_COLOR_KEY %u",new_tuple->value->uint8);    
       break;
   }
 }
@@ -150,7 +164,7 @@ void handle_init(void) {
   // Setup weather bar
   Layer *weather_holder = layer_create(GRect(0, 0, 144, 50));
   layer_add_child(window_layer, weather_holder);
-
+  
   icon_layer = bitmap_layer_create(GRect(144-40,0,40,40)); //GRect(0,0,40,40));
   layer_add_child(weather_holder,bitmap_layer_get_layer(icon_layer));
 
@@ -189,28 +203,38 @@ void handle_init(void) {
   text_layer_set_font(text_time_layer, fonts_load_custom_font(roboto_49));
   layer_add_child(date_holder, text_layer_get_layer(text_time_layer));
 
+  // Battery status
+  battery_text_layer = text_layer_create(GRect(0,168-18,144,18));
+  text_layer_set_text_color(battery_text_layer, GColorWhite);
+  text_layer_set_background_color(battery_text_layer, GColorClear);
+  text_layer_set_font(battery_text_layer,fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
+  //layer_add_child(window_layer, text_layer_get_layer(battery_text_layer));
+  
+  // Weather status
+  status_layer = text_layer_create(GRect(0,168-18,144,18));
+  text_layer_set_text_color(status_layer,GColorWhite);
+  text_layer_set_background_color(status_layer,GColorClear);
+  text_layer_set_font(status_layer,fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  text_layer_set_text_alignment(status_layer,GTextAlignmentLeft);
+  layer_add_child(window_layer,text_layer_get_layer(status_layer));
+  text_layer_set_text(status_layer,"Location!");
+  
   // Setup messaging
-  const int inbound_size = 64;
-  const int outbound_size = 64;
+  const int inbound_size = 128;
+  const int outbound_size = 128;
   app_message_open(inbound_size, outbound_size);
 
   Tuplet initial_values[] = {
     TupletInteger(WEATHER_ICON_KEY, (uint8_t) 13),
     TupletCString(WEATHER_TEMPERATURE_KEY, ""),
+    TupletCString(WEATHER_LOCATION_KEY, ""),    
     TupletInteger(INVERT_COLOR_KEY, persist_read_bool(INVERT_COLOR_KEY)),
   };
 
   app_sync_init(&sync, sync_buffer, sizeof(sync_buffer), initial_values,
                 ARRAY_LENGTH(initial_values), sync_tuple_changed_callback,
                 NULL, NULL);
-
-  // FIXME testing code
-  battery_text_layer = text_layer_create(GRect(0, 168 - 18, 144, 168));
-  text_layer_set_text_color(battery_text_layer, GColorWhite);
-  text_layer_set_background_color(battery_text_layer, GColorClear);
-  text_layer_set_font(battery_text_layer,fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(battery_text_layer));
 
   // Subscribe to notifications
   bluetooth_connection_service_subscribe(bluetooth_connection_changed);
@@ -220,10 +244,8 @@ void handle_init(void) {
   // Update the battery on launch
   update_battery_state(battery_state_service_peek());
 
-  //Get a time structure so that the face doesn't start blank
-  //Manually call the tick handler when the window is loading  
-  //struct tm *t;
-  //time_t temp;
+  // Get a time structure so that the face doesn't start blank
+  // Manually call the tick handler when the window is loading  
   time_t temp = time(NULL);
   struct tm *t = localtime(&temp);
   handle_minute_tick(t,MINUTE_UNIT);

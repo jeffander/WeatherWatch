@@ -72,20 +72,23 @@ if (options === null) options = { "use_gps" : "true",
                                   "units" : "fahrenheit",
                                   "invert_color" : "false"};
 
-function getWeatherFromLatLong(latitude, longitude) {
+function getWeatherFromLatLong(latitude,longitude) {
   var response;
   var woeid = -1;
-  var query = encodeURI("select woeid from geo.placefinder where text=\""+latitude+","+longitude + "\" and gflags=\"R\"");
+  var query = encodeURI("select woeid,neighborhood from geo.placefinder where text=\""+latitude+","+longitude + "\" and gflags=\"R\"");
   var url = "http://query.yahooapis.com/v1/public/yql?q=" + query + "&format=json";
   var req = new XMLHttpRequest();
   req.open('GET', url, true);
   req.onload = function(e) {
     if (req.readyState == 4) {
       if (req.status == 200) {
+        console.log("getWeatherFromLatLong "+latitude+","+longitude);
+        console.log(req.responseText);
         response = JSON.parse(req.responseText);
         if (response) {
           woeid = response.query.results.Result.woeid;
-          getWeatherFromWoeid(woeid);
+          locationName = response.query.results.Result.neighborhood;          
+          getWeatherFromWoeid(woeid,locationName);
         }
       } else {
         console.log("Error");
@@ -95,22 +98,24 @@ function getWeatherFromLatLong(latitude, longitude) {
   req.send(null);
 }
 
-function getWeatherFromLocation(location_name) {
+function getWeatherFromLocation(location) {
   var response;
   var woeid = -1;
 
-  var query = encodeURI("select woeid from geo.places(1) where text=\"" + location_name + "\"");
+  var query = encodeURI("select woeid,name from geo.places(1) where text=\"" + location + "\"");
   var url = "http://query.yahooapis.com/v1/public/yql?q=" + query + "&format=json";
   var req = new XMLHttpRequest();
   req.open('GET', url, true);
   req.onload = function(e) {
     if (req.readyState == 4) {
       if (req.status == 200) {
-        // console.log(req.responseText);
+        //console.log("getWeatherFromLocation "+location);        
+        //console.log(req.responseText);
         response = JSON.parse(req.responseText);
         if (response) {
           woeid = response.query.results.place.woeid;
-          getWeatherFromWoeid(woeid);
+          locationName = response.query.results.place.name;
+          getWeatherFromWoeid(woeid,locationName);
         }
       } else {
         console.log("Error");
@@ -120,7 +125,7 @@ function getWeatherFromLocation(location_name) {
   req.send(null);
 }
 
-function getWeatherFromWoeid(woeid) {
+function getWeatherFromWoeid(woeid,locationName) {
   var celsius = options['units'] == 'celsius';
   var query = encodeURI("select item.condition from weather.forecast where woeid = " + woeid +
                         " and u = " + (celsius ? "\"c\"" : "\"f\""));
@@ -132,18 +137,17 @@ function getWeatherFromWoeid(woeid) {
   req.onload = function(e) {
     if (req.readyState == 4) {
       if (req.status == 200) {
+        console.log("getWeatherFromWoeid "+woeid+","+locationName);        
+        console.log(req.responseText);        
         response = JSON.parse(req.responseText);
         if (response) {
-          console.log("Response "+response)
           var condition = response.query.results.channel.item.condition;
           temperature = condition.temp + (celsius ? "\u00B0C" : "\u00B0F");
           icon = imageId[condition.code];
-          // console.log("temp " + temperature);
-          // console.log("icon " + icon);
-          // console.log("condition " + condition.text);
           Pebble.sendAppMessage({
             "icon" : icon,
             "temperature" : temperature,
+            "location_name" : locationName,
             "invert_color" : (options["invert_color"] == "true" ? 1 : 0),
           });
         }
