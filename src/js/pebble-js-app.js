@@ -65,16 +65,16 @@ var imageId = {
   3200 : NA, //not available
 };
 
+
 var options = JSON.parse(localStorage.getItem('options'));
-//console.log('read options: ' + JSON.stringify(options));
+console.log('read options: ' + JSON.stringify(options));
 if (options === null) options = { "use_gps" : "true",
                                   "location" : "",
                                   "units" : "fahrenheit",
                                   "invert_color" : "false"};
 
+
 function getWeatherFromLatLong(latitude,longitude) {
-  var response;
-  var woeid = -1;
   var query = encodeURI("select woeid,neighborhood from geo.placefinder where text=\""+latitude+","+longitude + "\" and gflags=\"R\"");
   var url = "http://query.yahooapis.com/v1/public/yql?q=" + query + "&format=json";
   var req = new XMLHttpRequest();
@@ -84,10 +84,11 @@ function getWeatherFromLatLong(latitude,longitude) {
       if (req.status == 200) {
         console.log("getWeatherFromLatLong "+latitude+","+longitude);
         console.log(req.responseText);
-        response = JSON.parse(req.responseText);
+        var response = JSON.parse(req.responseText);
         if (response) {
-          woeid = response.query.results.Result.woeid;
-          locationName = response.query.results.Result.neighborhood;          
+          var result = response.query.results.Result;
+          var woeid = result.woeid;       
+          var locationName = result.neighborhood?result.neighborhood:"";              
           getWeatherFromWoeid(woeid,locationName);
         }
       } else {
@@ -99,9 +100,6 @@ function getWeatherFromLatLong(latitude,longitude) {
 }
 
 function getWeatherFromLocation(location) {
-  var response;
-  var woeid = -1;
-
   var query = encodeURI("select woeid,name from geo.places(1) where text=\"" + location + "\"");
   var url = "http://query.yahooapis.com/v1/public/yql?q=" + query + "&format=json";
   var req = new XMLHttpRequest();
@@ -111,11 +109,11 @@ function getWeatherFromLocation(location) {
       if (req.status == 200) {
         console.log("getWeatherFromLocation "+location);        
         console.log(req.responseText);
-        response = JSON.parse(req.responseText);
+        var response = JSON.parse(req.responseText);
         if (response) {
-          place = response.query.results.place;
-          woeid = place.woeid;
-          locationName = place["name12"]?place["name"]:"";
+          var place = response.query.results.place;
+          var woeid = place.woeid;
+          var locationName = place.name?place.name:"";
           getWeatherFromWoeid(woeid,locationName);
         }
       } else {
@@ -131,8 +129,6 @@ function getWeatherFromWoeid(woeid,locationName) {
   var query = encodeURI("select item.condition,item.forecast from weather.forecast where woeid = " + woeid +
                         " and u = " + (celsius ? "\"c\"" : "\"f\""));
   var url = "http://query.yahooapis.com/v1/public/yql?q=" + query + "&format=json";
-
-  var response;
   var req = new XMLHttpRequest();
   req.open('GET', url, true);
   req.onload = function(e) {
@@ -140,7 +136,7 @@ function getWeatherFromWoeid(woeid,locationName) {
       if (req.status == 200) {
         console.log("getWeatherFromWoeid "+woeid+","+locationName);        
         console.log(req.responseText);        
-        response = JSON.parse(req.responseText);
+        var response = JSON.parse(req.responseText);
         if (response) {
           //var item = response.query.results.channel.item; // Without forecast
           var item = response.query.results.channel[0].item;  // With forecast          
