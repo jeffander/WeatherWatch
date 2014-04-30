@@ -1,10 +1,27 @@
 {
+    "companyName": "John Flanagan",
+    "longName": "Simplicity inspired with weather",
+    "uuid": "1f0b0701-cc8f-47ec-86e7-7181397f9a8e",
+    "capabilities": [
+        "configurable"
+    ],
+    "versionLabel": "1.0.0",
+    "appKeys": {
+        "location_name": 2,
+        "temperature": 1,
+        "invert_color": 3,
+        "icon": 0
+    },
+    "watchapp": {
+        "watchface": true
+    },
+    "versionCode": 1,
     "resources": {
         "media": [
             {
                 "file": "images/menu_icon_simplicity.png",
-                "name": "IMAGE_MENU_ICON",
                 "menuIcon": true,
+                "name": "IMAGE_MENU_ICON",
                 "type": "png"
             },
             {
@@ -101,22 +118,5 @@
             }
         ]
     },
-    "capabilities": [
-        "configurable"
-    ],
-    "appKeys": {
-        "temperature": 1,
-        "location_name": 2,
-        "icon": 0,
-        "invert_color": 3
-    },
-    "versionCode": 1,
-    "watchapp": {
-        "watchface": true
-    },
-    "shortName": "Simple Weather",
-    "companyName": "John Flanagan",
-    "longName": "Simplicity inspired with weather",
-    "uuid": "1f0b0701-cc8f-47ec-86e7-7181397f9a8e",
-    "versionLabel": "1.0.0"
+    "shortName": "Simple Weather"
 }

@@ -83,7 +83,7 @@ function getWeatherFromLatLong(latitude,longitude) {
     if (req.readyState == 4) {
       if (req.status == 200) {
         console.log("getWeatherFromLatLong "+latitude+","+longitude);
-        //console.log(req.responseText);
+        console.log(req.responseText);
         response = JSON.parse(req.responseText);
         if (response) {
           woeid = response.query.results.Result.woeid;
@@ -110,11 +110,12 @@ function getWeatherFromLocation(location) {
     if (req.readyState == 4) {
       if (req.status == 200) {
         console.log("getWeatherFromLocation "+location);        
-        //console.log(req.responseText);
+        console.log(req.responseText);
         response = JSON.parse(req.responseText);
         if (response) {
-          woeid = response.query.results.place.woeid;
-          locationName = response.query.results.place.name;
+          place = response.query.results.place;
+          woeid = place.woeid;
+          locationName = place["name12"]?place["name"]:"";
           getWeatherFromWoeid(woeid,locationName);
         }
       } else {
@@ -127,7 +128,7 @@ function getWeatherFromLocation(location) {
 
 function getWeatherFromWoeid(woeid,locationName) {
   var celsius = options['units'] == 'celsius';
-  var query = encodeURI("select item.condition from weather.forecast where woeid = " + woeid +
+  var query = encodeURI("select item.condition,item.forecast from weather.forecast where woeid = " + woeid +
                         " and u = " + (celsius ? "\"c\"" : "\"f\""));
   var url = "http://query.yahooapis.com/v1/public/yql?q=" + query + "&format=json";
 
@@ -138,17 +139,16 @@ function getWeatherFromWoeid(woeid,locationName) {
     if (req.readyState == 4) {
       if (req.status == 200) {
         console.log("getWeatherFromWoeid "+woeid+","+locationName);        
-        //console.log(req.responseText);        
+        console.log(req.responseText);        
         response = JSON.parse(req.responseText);
         if (response) {
-          var condition = response.query.results.channel.item.condition;
-          var temperature = condition.temp + (celsius ? "\u00B0C" : "\u00B0F");
-          var icon = imageId[condition.code];
+          //var item = response.query.results.channel.item; // Without forecast
+          var item = response.query.results.channel[0].item;  // With forecast          
           var now = new Date();
-          var time = ""+now.getHours()+":"+now.getMinutes();
+          var time = now.getHours()+":"+(now.getMinutes()<10?"0":"")+now.getMinutes();
           Pebble.sendAppMessage({
-            "icon" : icon,
-            "temperature" : temperature,
+            "icon" : imageId[item.condition.code],
+            "temperature" : item.condition.temp+(celsius?"\u00B0C":"\u00B0F"),
             "location_name" : time+" "+locationName.substring(0,32),
             "invert_color" : (options["invert_color"] == "true" ? 1 : 0),
           });

@@ -176,7 +176,7 @@ void handle_init(void) {
   layer_add_child(weather_holder,text_layer_get_layer(temp_layer));
 
   // Initialize date & time text
-  Layer *date_holder = layer_create(GRect(0, 52, 144, 94));
+  Layer *date_holder = layer_create(GRect(0, 42, 144, 94)); //GRect(0, 52, 144, 94));
   layer_add_child(window_layer, date_holder);
 
   ResHandle roboto_21 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21);
